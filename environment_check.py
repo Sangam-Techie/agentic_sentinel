@@ -2,6 +2,7 @@ import sys
 import subprocess
 from rich.console import Console
 from rich.table import Table
+from importlib.metadata import version
 
 console = Console()
 
@@ -47,7 +48,7 @@ def check_python_packages() -> list[tuple[str, bool, str]]:
     for import_name, display_name in REQUIRED_PACKAGES:
         try:
             __import__(import_name)
-            results.append((display_name, True, ""))
+            results.append((display_name, True, version(display_name)))
         except ImportError as e:
             results.append((display_name, False, str(e)))
     return results
@@ -132,15 +133,15 @@ def render_report(
     pkg_table = Table(title="Python Packages", show_lines=True)
     pkg_table.add_column("Package", style="cyan", min_width=30)
     pkg_table.add_column("Status", min_width=10)
-    pkg_table.add_column("Note", style="dim")
+    pkg_table.add_column("Version", style="dim")
 
 
     all_pkg_ok = True
-    for name, ok, note in package_results:
+    for name, ok, ver in package_results:
         status = "[green]✅ OK[/green]" if ok else "[red]x FAIL[/red]"
         if not ok:
             all_pkg_ok = False
-        pkg_table.add_row(name, status, note)
+        pkg_table.add_row(name, status, ver)
     console.print(pkg_table)
     console.print()
 
