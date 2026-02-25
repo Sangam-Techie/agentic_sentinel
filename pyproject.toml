@@ -1,0 +1,69 @@
+# pyproject.toml
+
+[build-system]
+requires      = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name        = "agentic-sentinel"
+version     = "0.1.0"
+description = "Agentic AI security pipeline for IoT/OT red team and blue team operations"
+requires-python = ">=3.11"
+
+dependencies = [
+    "rich",
+    "streamlit",
+    "typer",
+    "fastapi",
+    "uvicorn",
+    "scapy",
+    "onvif-zeep",
+    "sqlmodel",
+    "chromadb",
+    "opencv-python-headless",
+    "httpx",
+    "langchain",
+    "langgraph",
+    "aiomqtt",
+    "aiocoap",
+    "pymodbus",
+    "asyncua",
+    "BAC0",
+    "bleak",
+    "pysnmp",
+    "paramiko",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "mypy",
+    "pre-commit",
+]
+
+[project.scripts]
+# Week 3+: CLI entry points will be added here
+# sentinel-scan = "agentic_sentinel.tools.scanner:app"
+
+[tool.setuptools.packages.find]
+# Tells setuptools to auto-discover agentic_sentinel/ and all sub-packages
+where   = ["."]
+include = ["agentic_sentinel*"]
+
+[tool.ruff]
+line-length    = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]   # pycodestyle, pyflakes, isort
+
+[tool.mypy]
+python_version         = "3.11"
+strict                 = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"            # no more per-test @pytest.mark.asyncio needed
+testpaths    = ["tests"]

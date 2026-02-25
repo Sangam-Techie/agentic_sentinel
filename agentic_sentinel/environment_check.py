@@ -1,8 +1,9 @@
-import sys
 import subprocess
+import sys
+from importlib.metadata import version
+
 from rich.console import Console
 from rich.table import Table
-from importlib.metadata import version
 
 console = Console()
 
@@ -12,6 +13,7 @@ console = Console()
 
 REQUIRED_PACKAGES = [
     # (import_name, display_name)
+    ("agentic_sentinel", "agentic-sentinel"),
     ("rich",        "rich"),
     ("streamlit",   "streamlit"),
     ("typer",       "typer"),
@@ -119,7 +121,8 @@ def render_report(
     """
     Render a report summarizing the results of environment checks.
 
-    Prints a table containing the results of package checks, system tool checks and python version check.
+    Prints a table containing the results of package checks,
+    system tool checks and python version check.
     Returns True if all checks pass, False otherwise.
     """
     console.print("\n[bold cyan]=== Agentic Sentinel - Environment Check ===[/bold cyan]\n")
@@ -164,7 +167,9 @@ def render_report(
     if overall:
         console.print("[bold green]✅ All checks passed. Environment is ready.[/bold green]\n")
     else:
-        console.print("[bold red]x Some checks failed. Fix the items above before proceeding.[/bold red]\n")
+        console.print("[bold red]x Some checks failed.\
+        Fix the items above before proceeding.[/bold red]\n"
+        )
     return overall
 
 # ==============================
