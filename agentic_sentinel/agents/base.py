@@ -1,9 +1,17 @@
+"""
+Abstract base class for all Agentic Sentinel agents.
+
+Import with:
+    from agentic_sentinel.agents.base import AgentBase, DemoAgent
+"""
 import asyncio
 import logging
 from abc import ABC, abstractmethod
 
 from rich.console import Console
 
+from agentic_sentinel.agents.audit import AuditLog
+from agentic_sentinel.agents.hitl import PermissionNode
 from agentic_sentinel.agents.types import ActionResult, AgentDecision, Perception
 
 __all__ = ["AgentBase", "DemoAgent"]
@@ -30,13 +38,22 @@ class AgentBase(ABC):
         self,
         name: str,
         loop_interval: float = 5.0,    # seconds between iterations
-        max_iterations: int|None = None # None = run forever
+        max_iterations: int|None = None, # None = run forever
+        audit_log: AuditLog|None = None,
+        operator: str = "cli",
+        target_scope: str = "localhost",
+        authorization_ref: str = "att.md"
     ):
         self.name = name
         self.loop_interval = loop_interval
         self.max_iterations = max_iterations
         self.iteration = 0
         self.stop_event = asyncio.Event() # To stop loop cleanly
+        self.audit_log = audit_log
+        self.run_id: str|None = None
+        self._operator = operator
+        self._target_scope = target_scope
+        self._authorization_ref = authorization_ref
 
         # --------------------------------------------------
         # Abstract methods - subclasses must implement these
@@ -98,10 +115,32 @@ class AgentBase(ABC):
             result.error or "none"
         )
 
+        # Write to audit trail if configured
+        if self.audit_log and self.run_id:
+            self.audit_log.log_action(
+                run_id=self.run_id,
+                tool_name=result.action_name,
+                parameters=result.output,
+                risk_level="LOW",
+                approved=True,
+                approval_reason="auto_low",
+                result_summary="success" if result.success else None,
+                error=result.error or None,
+            )
+
 
     async def on_start(self) -> None:
         """Called once before the loop begins. Override for setup work."""
         console.print(f"\n[bold cyan]▶ Agent '{self.name} starting.[/bold cyan]")
+        # open an AgentRun row
+        if self.audit_log:
+            run = self.audit_log.start_run(
+                operator=self._operator,
+                target_scope=self._target_scope,
+                authorization_ref=self._authorization_ref
+            )
+            self.run_id = run.id
+            console.print(f"[dim]Audit run ID: {self.run_id}[/dim]")
 
     async def on_stop(self) -> None:
         """Called once after the loop ends. Override for teardown work."""
@@ -109,6 +148,9 @@ class AgentBase(ABC):
             f"\n[bold yellow]■ Agent '{self.name}' stopped "
             f"after {self.iteration} iteration(s).[/bold yellow]"
         )
+        # close the AgentRun row
+        if self.audit_log and self.run_id:
+            self.audit_log.finish_run(self.run_id, status="completed")
 
 
     # -------------------------------------------------------------------
@@ -139,6 +181,10 @@ class AgentBase(ABC):
                 raise
             except Exception as e:
                 logger.error("Iteration %d failed: %s", self.iteration, e)
+                # mark run as abortd if an unhandled error escapes
+                if self.audit_log and self.run_id:
+                    self.audit_log.finish_run(self.run_id, status="aborted")
+                raise
 
         await self.on_stop()
 
@@ -177,22 +223,36 @@ class DemoAgent(AgentBase):
 
     async def act(self, decision: AgentDecision) -> ActionResult:
         # IF Higher then, printing warning(will add HTITL later)
-        if decision.risk_level == "LOW":
-            return ActionResult(
-                success=True,
-                action_name=decision.action_name,
-                output={"rationale": decision.rationale}
+        if decision.risk_level == "LOW" and self.audit_log and self.run_id:
+            gate = PermissionNode(
+                action_description=f"{decision.action_name}: {decision.rationale}",
+                risk=decision.risk_level,
+                audit_log=self.audit_log,
+                run_id=self.run_id,
+                tool_name=decision.action_name,
+                parameters=decision.parameters,
             )
-        # Non-Low path (placeholder untill day 3)
-        console.print(
-            f"[yellow]⚠ HITL required for {decision.risk_level} action "
-            f"'{decision.action_name}' - blocked until Day 3 or 4 wiring.[/yellow]"
-        )
+            if not gate.request_approval():
+                return ActionResult(
+                    success=False,
+                    action_name=decision.action_name,
+                    error="Blocked by HITL gate",
+                )
         return ActionResult(
-            success=False,
+            success=True,
             action_name=decision.action_name,
-            error="HITL gate not yet wired",
+            output={"rationale": decision.rationale}
         )
+        # # Non-Low path (placeholder untill day 3)
+        # console.print(
+        #     f"[yellow]⚠ HITL required for {decision.risk_level} action "
+        #     f"'{decision.action_name}' - blocked until Day 3 or 4 wiring.[/yellow]"
+        # )
+        # return ActionResult(
+        #     success=False,
+        #     action_name=decision.action_name,
+        #     error="HITL gate not yet wired",
+        # )
 
 
 # ===============================================
@@ -200,10 +260,15 @@ class DemoAgent(AgentBase):
 # ================================================
 
 if __name__ == "__main__":
+    audit = AuditLog(database_url="sqlite:///demo_audit.sqlite")
     # Running the DemoAgent for exactly 3 iterations with a 1-second interval.
     agent = DemoAgent(
         name="sentinel-demo",
         max_iterations=3,
-        loop_interval=1,
+        loop_interval=1.0,
+        audit_log=audit,
+        operator="student",
+        target_scope="localhost",
+        authorization_ref="authorization_to_test.md",
     )
     asyncio.run(agent.run_loop())

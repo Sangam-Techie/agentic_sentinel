@@ -1,3 +1,7 @@
+"""
+Shared data contracts for the agent loop.
+Import with: from agentic_sentinel.agents.types import Perception, AgentDecision, ActionResult
+"""
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any

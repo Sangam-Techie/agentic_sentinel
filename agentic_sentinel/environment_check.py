@@ -79,11 +79,7 @@ def check_system_tools() -> list[tuple[str, bool, str]]:
     """
     results = []
     for command, display_name in REQUIRED_TOOLS:
-        result = subprocess.run(
-            ["which", command],
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["which", command], capture_output=True, text=True) # noqa: S603,S607
         if result.returncode == 0:
             results.append((display_name, True, result.stdout.strip()))
         else:
