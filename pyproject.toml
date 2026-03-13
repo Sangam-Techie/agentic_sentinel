@@ -38,6 +38,7 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
     "ruff",
     "mypy",
     "pre-commit",
@@ -56,11 +57,28 @@ include = ["agentic_sentinel*"]
 line-length    = 100
 target-version = "py311"
 
+# pyproject.toml — update [tool.ruff.lint] section only
+
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]   # pycodestyle, pyflakes, isort
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes (undefined names, unused imports)
+    "W",    # pycodestyle warnings
+    "I",    # isort (import ordering)
+    "UP",   # pyupgrade (modernise Python syntax)
+    "B",    # flake8-bugbear (common bug patterns)
+    "S",    # flake8-bandit (basic security checks — catches hardcoded passwords)
+]
+ignore = [
+    "S101",  # allow `assert` in test files (bandit flags it, want it in pytest)
+    "E501",  # line too long — ruff format handles this; don't want double-enforcement
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S106"]   # S106: hardcoded password — test fixtures use fake passwords
 
 [tool.mypy]
-python_version         = "3.11"
+python_version         = "3.12"
 strict                 = false
 ignore_missing_imports = true
 
