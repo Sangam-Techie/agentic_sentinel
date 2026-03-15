@@ -4,8 +4,8 @@
 > and blue team operations — built with Python, FastAPI, LangGraph,
 > and Streamlit.
 
-[![CI](https://github.com/Sangam-Techie/agentic-sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/Sangam-Techie/agentic-sentinel/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Sangam-Techie/agentic-sentinel/branch/main/graph/badge.svg)](https://codecov.io/gh/Sangam-Techie/agentic-sentinel)
+[![CI](https://github.com/Sangam-Techie/agentic_sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/Sangam-Techie/agentic_sentinel/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/Sangam-Techie/agentic_sentinel/branch/main/graph/badge.svg)](https://codecov.io/gh/Sangam-Techie/agentic_sentinel)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -36,21 +36,15 @@ approves. Autonomous destructive action is architecturally impossible.
 ## Project Status
 This project is organized into logical milestones. Rather than adhering to a rigid timeline, each phase focuses on mastering specific domains of AI-driven security.
 
-| Phase | Theme | Focus Areas | Status
-|-------|-------|-------------|-------|
-| I | Foundations: environment, agent loop, HITL, CI | ✅ Complete
-
-| II |IoT/OT Edge| Asset discovery, Camera bootstrap, Landscape mapping| 🔄 In progress
-
-| III | Protocol Mastery|Micro-modules for MQTT, Modbus, and ONVIF| ⏳ Upcoming
-
-| IV | Deep analysis | Firmware analysis & vulnerability identification|⏳ Upcoming
-
-| V | Offensive Ops | Multi-agent Red Team pipelines (LangGraph)| ⏳ Upcoming
-
-| VI | Defensive Ops| IDS/IPS integration, RAG-driven threat intelligence| ⏳ Upcoming
-
-| VII | Capstone | Dashboard, DevSecOps hardening, Production deployment| ⏳ Upcoming
+| Phase | Theme | Focus Areas | Status |
+| :--- | :--- | :--- | :--- |
+| **I** | **Foundations** | Env hardening, Async Agent Loop, HITL, CI/CD | ✅ Complete |
+| **II** | **IoT/OT Edge** | Asset discovery, Camera bootstrap, Landscape mapping | 🔄 In progress |
+| **III** | **Protocol Mastery** | Micro-modules for MQTT, Modbus, and ONVIF | ⏳ Upcoming |
+| **IV** | **Deep Analysis** | Firmware analysis & vulnerability identification | ⏳ Upcoming |
+| **V** | **Offensive Ops** | Multi-agent Red Team pipelines (LangGraph) | ⏳ Upcoming |
+| **VI** | **Defensive Ops** | IDS/IPS integration, RAG-driven threat intelligence | ⏳ Upcoming |
+| **VII** | **Capstone** | Dashboard, DevSecOps hardening, Production deployment | ⏳ Upcoming |
 
 ---
 
