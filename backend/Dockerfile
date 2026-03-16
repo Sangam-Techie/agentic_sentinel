@@ -36,7 +36,7 @@ WORKDIR /app
 
 # Copy installed packages from the builder stage(copy the site)
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /user/local/bin
+COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /build /app
 
 # Switch to non-root user

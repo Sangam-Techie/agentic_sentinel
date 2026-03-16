@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: Database table schemas
 # =================================================
 
-class AgentRun(SQLModel, table=True):
+class AgentRun(SQLModel, table=True): # type: ignore[call-arg]
     """
     One top-level invocation of the agent pipeline.
     Created when run_loop() starts; updated when it ends.
@@ -54,7 +54,7 @@ class AgentRun(SQLModel, table=True):
     authorization_ref : str
 
 
-class AgentAction(SQLModel, table=True):
+class AgentAction(SQLModel, table=True): # type: ignore[call-arg]
     """
     One atomic action taken (or blocked) withing an AgentRun.
     Created by AuditLog.log_action() inside PermissionNode
