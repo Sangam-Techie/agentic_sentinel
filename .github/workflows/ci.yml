@@ -137,7 +137,15 @@ jobs:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            pypi.org:443
+            files.pythonhosted.org:443
+            github.com:443
+            raw.githubusercontent.com:443
+            index.docker.io:443
+            registry-1.docker.io:443
+            production.cloudflare.docker.com:443
 
       - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
