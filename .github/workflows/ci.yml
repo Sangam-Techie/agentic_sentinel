@@ -168,11 +168,14 @@ jobs:
             --tag agentic-sentinel-backend:ci \
             --file backend/Dockerfile \
             .
+          podman save agentic-sentinel-backend:ci -o backend-image.tar
+
+
 
       - name: Run Trivy on Backend Image
         uses: aquasecurity/trivy-action@97e0b3872f55f89b95b2f65b3dbab56962816478 # 0.34.2
         with:
-          image-ref: 'localhost/agentic-sentinel-backend:ci'
+          input: 'backend-image.tar' # Tells Trivy to scan the file, not the daemon
           format: 'table'
           exit-code: '1' # Fails the build if vulnerabilities are found
           ignore-unfixed: true
@@ -184,11 +187,12 @@ jobs:
             --tag agentic-sentinel-dashboard:ci \
             --file dashboard/Dockerfile \
             .
+          podman save agentic-sentinel-dashboard:ci -o dashboard-image.tar
 
       - name: Run Trivy on Dashboard Image
         uses: aquasecurity/trivy-action@97e0b3872f55f89b95b2f65b3dbab56962816478 # 0.34.2
         with:
-          image-ref: 'localhost/agentic-sentinel-dashboard:ci'
+          input: 'dashboard-image.tar'
           format: 'table'
           exit-code: '1' # Fails the build if vulnerabilities are found
           ignore-unfixed: true
