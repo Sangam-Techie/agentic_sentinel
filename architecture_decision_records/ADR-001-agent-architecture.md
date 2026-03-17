@@ -1,4 +1,4 @@
-# ADR-001 — Agent Architecture and Project Layout
+# ADR-001 — Agent Architecture, Project Layout and CI/CD
 
 **Date:** 2026-03-13
 **Status:** Accepted
@@ -74,6 +74,12 @@ A single `pyproject.toml` at the project root:
 This makes `pip install -e ".[dev]"` the single setup command for any
 environment: local dev, CI runner, container build.
 
+Milestone-Based Velocity:
+I have moved away from a strict 12-week calendar to a Phase-based roadmap. This allows for "Deep-Dive" cycles into infrastructure (Fedora hardening, CI/CD, Git internals) and other necessary suppliments without the pressure of artificial weekly deadlines.
+
+The 70/30 Authorship Rule:
+To ensure maximum architectural retention, 70% of core logic is authored manually, while 30% utilizes skeletons for boilerplate. This prevents "LLM-dependency" and ensures the developer can defend every line of code in a technical interview.
+
 ---
 
 ## Consequences
@@ -140,3 +146,31 @@ Revisit this ADR if:
 - A protocol module needs to live outside `agentic_sentinel/` for
   licensing reasons
 - The learning velocity significantly deviates from the phased roadmap.
+
+
+**CI: uv in GitHub Actions uses --system**
+Context: GitHub runners don’t activate a venv by default; uv pip install ... fails with “No virtual environment found”.
+
+Decision: Use uv pip install --system ... in CI jobs (lint + tests) to install into runner Python.
+
+Consequences:
+Positive: simpler, fewer moving parts, fixes CI deterministically.
+
+Trade-off: less isolation than a venv; acceptable in ephemeral CI runners.
+
+Alternatives:
+Create .venv with uv venv and add PATH/VIRTUAL_ENV in each step.
+
+**Supply chain artifacts: SBOM + vuln scanning with Podman**
+Context: Podman-built images aren’t reliably visible to scanners expecting Docker daemon / Podman socket in GitHub Actions.
+
+Decision:
+SBOM: syft dir:backend (filesystem SBOM) for now.
+Vuln scanning: podman save backend/dashboard image -o image.tar + Trivy scan using input: image.tar.
+
+Consequences:
+Positive: avoids daemon/socket issues; scans the actual image (Trivy tarball) while staying Podman-first.
+Trade-off: SBOM is filesystem-based (not image-layer SBOM) until you switch SBOM to docker-archive: from the tarball later.
+
+Future trigger:
+When publishing images/hardening: generate SBOM from the image tarball (syft docker-archive:...) and/or scan images from a registry ref.
