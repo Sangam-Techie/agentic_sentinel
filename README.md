@@ -1,8 +1,8 @@
 # Agentic Sentinel
 
-> An AI-powered security pipeline for autonomous IoT/OT red team
-> and blue team operations — built with Python, FastAPI, LangGraph,
-> and Streamlit.
+> An autonomous API security testing agent — built with Python, httpx,
+> Playwright, Ollama (local LLMs), LangGraph, and FastAPI.
+> Designed for bug bounty automation and professional API security audits.
 
 [![CI](https://github.com/Sangam-Techie/agentic_sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/Sangam-Techie/agentic_sentinel/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/Sangam-Techie/agentic_sentinel/branch/main/graph/badge.svg)](https://codecov.io/gh/Sangam-Techie/agentic_sentinel)
@@ -13,38 +13,60 @@
 
 ## What This Is
 
-Agentic Sentinel is a progressive build of a production-grade agentic security tool, evolving from a foundational skeleton to a complete security orchestration platform. It combines:
+Agentic Sentinel is a progressive build of a production-grade autonomous
+API security agent, evolving from a governance-first foundation to a
+complete multi-agent bug bounty and audit platform. It combines:
 
 - **Autonomous agent loop** (perceive → reason → act → observe) with
-  mandatory Human-In-The-Loop governance for any MEDIUM+ risk action
-- **IoT/OT protocol coverage**: ONVIF, RTSP, MQTT, Modbus TCP, OPC-UA,
-  BACnet, BLE, SNMP, CoAP, and more
-- **Firmware analysis pipeline**: automated extraction, hardcoded
-  credential scanning, CVE matching
-- **RAG-powered threat intelligence**: ChromaDB vector store + offline
-  CVE embeddings for context-aware analysis
-- **Streamlit dashboard**: real-time agent run status, audit log viewer,
-  risk heatmap
-- **Full audit trail**: every agent action (approved or blocked) written
-  to SQLite with operator identity, risk level, and approval reason
+  mandatory Human-In-The-Loop (HITL) governance for any MEDIUM+ risk action
+- **API attack coverage**: BOLA/IDOR, JWT attacks, OAuth2 flaws,
+  mass assignment, stateful multi-step authorization bypass
+- **Shadow API discovery**: Playwright CDP listener captures
+  JavaScript-rendered endpoints invisible to static scanners
+- **Traffic interception**: mitmproxy addon feeds mid-flight request/response
+  data into the agent's perception pipeline
+- **LLM-powered reasoning**: Router/Reasoner pattern (Phi-3 routes,
+  Mistral 7B reasons) — fully local via Ollama, zero cloud dependency
+- **RAG-augmented analysis**: ChromaDB vector store with embedded OWASP
+  API Top 10 context and OpenAPI spec chunks
+- **Multi-agent coordination**: LangGraph StateGraph with specialist
+  ReconAgent, AttackAgent, VerifyAgent, and ReportAgent
+- **Adversarial self-validation**: RedTeamAgent vs BlueTeamAgent loop
+  proves detection coverage before submission
+- **Full audit trail**: Every proposed and confirmed finding — approved
+  or blocked — written to SQLite with operator identity, risk level,
+  and approval reason
 
-Every offensive capability is HITL-gated. The agent proposes; the human
-approves. Autonomous destructive action is architecturally impossible.
+Every offensive capability is HITL-gated. The agent proposes; the
+human approves. Autonomous destructive action is architecturally impossible.
 
 ---
 
-## Project Status
-This project is organized into logical milestones. Rather than adhering to a rigid timeline, each phase focuses on mastering specific domains of AI-driven security.
+## Why This Tool, Not Burp Suite Pro
 
-| Phase | Theme | Focus Areas | Status |
-| :--- | :--- | :--- | :--- |
-| **I** | **Foundations** | Env hardening, Async Agent Loop, HITL, CI/CD | ✅ Complete |
-| **II** | **IoT/OT Edge** | Asset discovery, Camera bootstrap, Landscape mapping | 🔄 In progress |
-| **III** | **Protocol Mastery** | Micro-modules for MQTT, Modbus, and ONVIF | ⏳ Upcoming |
-| **IV** | **Deep Analysis** | Firmware analysis & vulnerability identification | ⏳ Upcoming |
-| **V** | **Offensive Ops** | Multi-agent Red Team pipelines (LangGraph) | ⏳ Upcoming |
-| **VI** | **Defensive Ops** | IDS/IPS integration, RAG-driven threat intelligence | ⏳ Upcoming |
-| **VII** | **Capstone** | Dashboard, DevSecOps hardening, Production deployment | ⏳ Upcoming |
+| Capability                                  | Burp Suite Pro            | Agentic Sentinel                                    |
+| :------------------------------------------ | :------------------------ | :-------------------------------------------------- |
+| Shadow API discovery (JS-rendered endpoints)| Manual, browser-dependent | Automated via Playwright CDP                        |
+| Stateful multi-step BOLA sequences          | Manual                    | Automated, two-session management                   |
+| LLM-reasoned endpoint prioritization        | ❌                        | Router/Reasoner — auditable chain                   |
+| LLM hot-swap (change models in config)      | ❌                        | MCP standardization                                 |
+| Full audit trail per finding                | Partial                   | Every action, every approval, SQLite                |
+| Offline operation, zero cloud dependency    | Partial                   | 100% local — Ollama + ChromaDB with Cloud supported |
+| Red vs Blue adversarial self-validation     | ❌                        | Built-in                                            |
+
+## Project Status
+
+Built epoch-by-epoch. Each epoch ends with a real competition run against
+Hacker101 CTF or HackerOne targets. The gap list from each run defines
+what the next epoch builds.
+
+| Epoch | Theme | Key Capabilities | Status |
+| :---  | :----------------------------------| :------------------------------------------------- | :------------ |
+| **0** | **Foundations**                    | AgentBase, HITL governance, AuditLog, CI/CD        | ✅ Complete   |
+| **1** | **Minimum Viable Competing Agent** | HTTPProber, BOLADetector, TokenBucket, CrudeReason | 🔄 In Progress|
+| **2** | **Perception Deepening**           | mitmproxy, Playwright CDP, shadow APIs, JWT/OAuth2 | ⏳ Upcoming   |
+| **3** | **Reasoning Deepening**            | MCP server, Router/Reasoner, ChromaDB RAG          |  ⏳ Upcoming  |
+| **4** | **Scale and Architecture**         | LangGraph multi-agent, adversarial loop, dashboard | ⏳ Upcoming   |
 
 ---
 
@@ -69,6 +91,17 @@ pytest --asyncio-mode=auto -v
 # Run the demo agent (3 iterations, audit trail written to demo_audit.sqlite)
 python -m agentic_sentinel.agents.base
 ```
+**Lab targets** (containerized — no real systems required):
+
+```bash
+# Start vulnerable API targets
+podman-compose --profile labs up -d
+
+# Targets:
+#   vulnerable_api  → localhost:9090
+#   crAPI           → localhost:9091
+#   Juice Shop      → localhost:9092
+```
 
 ---
 
@@ -76,14 +109,32 @@ python -m agentic_sentinel.agents.base
 ```
 agentic_sentinel/
 ├── agents/
-│   ├── base.py      AgentBase abstract class + DemoAgent
-│   ├── types.py     Perception, AgentDecision, ActionResult
-│   ├── audit.py     AgentRun / AgentAction SQLModel schema + AuditLog
-│   └── hitl.py      PermissionNode — HITL governance gate
-├── tools/           Scanner, firmware analyser, credential auditor
-├── protocols/       Per-protocol probe modules
-├── compliance/      Pluggable compliance adapters: SIRA, IEC-62443
-└── config.py        Centralised settings via environment variables
+│   ├── base.py          AgentBase abstract class + DemoAgent
+│   ├── types.py         Perception, AgentDecision, ActionResult
+│   ├── audit.py         AgentRun / AgentAction SQLModel schema + AuditLog
+│   ├── hitl.py          PermissionNode — HITL governance gate
+│   ├── crude_reason.py  Single Ollama call (Epoch 1 — replaced in Epoch 3)
+│   └── api_security_graph.py  LangGraph multi-agent pipeline (Epoch 4)
+├── tools/
+│   ├── http_prober.py         HTTPProber — async HTTP perception
+│   ├── bola_detector.py       BOLADetector — HITL-gated IDOR enumeration
+│   ├── openapi_parser.py      OpenAPI spec → structured APIMap
+│   ├── playwright_agent.py    CDP network listener — shadow API discovery
+│   ├── interceptor.py         mitmproxy addon — mid-flight interception
+│   ├── stateful_prober.py     Multi-step BOLA sequences
+│   ├── auth_prober.py         JWT + OAuth2 testing
+│   └── mass_assignment_detector.py
+├── utils/
+│   └── rate_limiter.py        TokenBucket — async rate limiting (2 req/sec)
+├── llm/
+│   ├── router.py              RouterLLM — Phi-3, fast task classification
+│   ├── reasoner.py            ReasoningLLM — Mistral 7B, OWASP-informed
+│   ├── backend.py             LLMBackend abstract — hot-swap via config
+│   └── structured_output.py   Pydantic output parsing + retry logic
+├── rag/
+│   └── api_knowledge_store.py ChromaDB — OpenAPI + OWASP embeddings
+├── mcp_server.py              All tools exposed as MCP callables
+└── config.py                  Centralised settings via environment variables
 ```
 
 See [`architecture_decision_records/`](architecture_decision_records/) for
@@ -95,8 +146,13 @@ design rationale.
 
 **HITL Governance:** Every MEDIUM/HIGH/CRITICAL agent action requires
 a human operator to type a one-time approval token before the action
-executes. Kill switch (`AGENT_KILL_SWITCH=true`) halts all action
+executes. Kill switch (`AGENT_KILL_SWITCH=true`) halts all actions
 immediately.
+
+**Proposed vs Confirmed:** Every LLM finding is logged as
+`proposed: true` until a deterministic verification script independently
+confirms it. Only confirmed findings appear in reports. LLM hallucinations
+cannot produce false submissions.
 
 **Audit Trail:** Every action — approved, denied, or killed — is written
 to an `AgentAction` row in SQLite, linked to a parent `AgentRun` row
@@ -106,8 +162,13 @@ that records operator identity and authorization reference.
 without a completed `authorization_to_test.md` on file. Legal compliance
 is a first-class feature, not an afterthought.
 
-**Offline-First:** All lab work runs against local containers. No
-external internet dependency for any exercise.
+**Offline-First:** All lab work runs against local containers. All LLM
+inference runs locally via Ollama. No external internet dependency for
+any core capability.
+
+**MCP Standardization:** All tools are exposed as MCP (Model Context
+Protocol) callables. Swapping from Mistral to any other LLM requires
+one config line change — zero glue code rewritten.
 
 ---
 
@@ -142,12 +203,16 @@ podman build -t agentic-sentinel-dashboard -f dashboard/Dockerfile .
 
 ---
 
-## Portfolio Artifacts
+## Portfolio Artifacts (built epoch by epoch)
 
-Upon completion of the final milestone, this repository should contain:
-
-1. Complete GitHub repo with CI badges and architecture diagram
-2. Three incident-style case study reports
-3. Demo video (5–10 min end-to-end pipeline demonstration)
-4. Sanitised `agent_audit_log.sqlite` from the capstone run
-5. Architecture Decision Records: ADR-001 through ADR-003 minimum
+| Artifact | Epoch | Status |
+| :--- | :--- | :--- |
+| ADR-001: Agent Architecture | 0 | ✅ |
+| ADR-002: Epoch 1 Tool Architecture | 1 | ⏳ |
+| `reports/portfolio_artifact_001.md` (Hacker101 Postbook run) | 1 | ⏳ |
+| ADR-003: Epoch 2 Perception Expansion | 2 | ⏳ |
+| `reports/report_01_bola.md` (CVSS scored) | 4 | ⏳ |
+| `reports/report_02_auth_bypass.md` (CVSS scored) | 4 | ⏳ |
+| `reports/report_03_epoch4_full_pipeline.md` | 4 | ⏳ |
+| Demo video (5–10 min end-to-end pipeline) | 4 | ⏳ |
+| Sanitised `agent_audit_log.jsonl` from capstone run | 4 | ⏳ |

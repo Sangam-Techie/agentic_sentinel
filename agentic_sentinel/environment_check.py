@@ -19,22 +19,12 @@ REQUIRED_PACKAGES = [
     ("typer",       "typer"),
     ("fastapi",     "fastapi"),
     ("uvicorn",     "uvicorn"),
-    ("scapy",       "scapy"),
     ("sqlmodel",    "sqlmodel"),
     ("chromadb",    "chromadb"),
-    ("cv2",         "opencv-python-headless"),
     ("httpx",       "httpx"),
     ("pytest",      "pytest"),
     ("langchain",   "langchain"),
     ("langgraph",   "langgraph"),
-    ("aiomqtt",     "aiomqtt"),
-    ("aiocoap",     "aiocoap"),
-    ("pymodbus",    "pymodbus"),
-    ("asyncua",     "asyncua"),
-    ("BAC0",        "BAC0"),
-    ("bleak",       "bleak"),
-    ("pysnmp",      "pysnmp"),
-    ("paramiko",    "paramiko"),
     ("ruff",        "ruff"),
     ("mypy",        "mypy")
 ]
@@ -65,7 +55,6 @@ REQUIRED_TOOLS = [
     ("git",              "git"),
     ("podman",           "podman"),
     ("podman-compose",   "podman_compose"),
-    ("binwalk",          "binwalk"),
     ("python3",          "python3"),
     ("sqlite3",          "sqlite3")
 ]

@@ -19,7 +19,6 @@ console = Console()
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-
 # =====================================================
 # SECTION 1: Abstract base class
 # =====================================================
@@ -42,7 +41,7 @@ class AgentBase(ABC):
         audit_log: AuditLog|None = None,
         operator: str = "cli",
         target_scope: str = "localhost",
-        authorization_ref: str = "att.md"
+        authorization_ref: str = "att.md",
     ):
         self.name = name
         self.loop_interval = loop_interval
@@ -222,8 +221,8 @@ class DemoAgent(AgentBase):
         )
 
     async def act(self, decision: AgentDecision) -> ActionResult:
-        # IF Higher then, printing warning(will add HTITL later)
-        if decision.risk_level == "LOW" and self.audit_log and self.run_id:
+        # PermissionNode before act.
+        if self.audit_log and self.run_id:
             gate = PermissionNode(
                 action_description=f"{decision.action_name}: {decision.rationale}",
                 risk=decision.risk_level,
