@@ -10,7 +10,7 @@ from typing import Any
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
 
-class AgentAction(SQLModel, table=True):
+class AgentAction(SQLModel, table=True): # type: ignore[call-arg]
     # Primary key — database assigns this on INSERT, so it starts as None
     id: int|None = Field(default=None, primary_key=True)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
