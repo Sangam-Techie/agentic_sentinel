@@ -161,7 +161,7 @@ def render_report(
 # SECTION 5: Main entrypoint
 # ===============================
 
-def main():
+def main() -> None:
     python_ok, python_version = check_python_version()
     package_results = check_python_packages()
     tool_results = check_system_tools()

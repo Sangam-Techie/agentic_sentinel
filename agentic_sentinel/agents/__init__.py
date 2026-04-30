@@ -7,6 +7,8 @@ Most code should import from here, not from submodules directly.
     from agentic_sentinel.agents import AgentBase, AuditLog, PermissionNode
 """
 
+from typing import Any
+
 from agentic_sentinel.agents.types import ActionResult, AgentDecision, Perception
 
 __all__ = [
@@ -21,7 +23,7 @@ __all__ = [
 ]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazy imports to avoid circular dependency issues when running modules directly."""
     if name == "AgentAction":
         from agentic_sentinel.agents.audit import AgentAction
@@ -36,6 +38,6 @@ def __getattr__(name: str):
         from agentic_sentinel.agents.base import AgentBase
         return AgentBase
     elif name == "DemoAgent":
-        from agentic_sentinel.agents.base import DemoAgent
+        from agentic_sentinel.agents.demo_agent import DemoAgent
         return DemoAgent
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
@@ -84,13 +85,13 @@ class AuditLog:
             session.refresh(action)
             return action
 
-    def tail_jsonl(self, n: int = 10) -> list[dict]:
+    def tail_jsonl(self, n: int = 10) -> list[dict[str, str]]:
         if self._jsonl_path is None or not self._jsonl_path.exists():
             return []
         lines = self._jsonl_path.read_text(encoding="utf-8").strip().splitlines()
         return [json.loads(line) for line in lines[-n:] if line.strip()]
 
-    def export_jsonl_for_rag(self, run_id: str|None = None) -> list[dict]:
+    def export_jsonl_for_rag(self, run_id: str|None = None) -> list[dict[str, str]]:
         """
         Return all JSONL lines as dicts, optionally filtered by run_id.
 
@@ -112,7 +113,7 @@ class AuditLog:
             return all_lines
         return [row for row in all_lines if row.get("run_id") == run_id]
 
-    def run_summary(self, run_id: str) -> dict:
+    def run_summary(self, run_id: str) -> dict[str, Any]:
         with Session(self._engine) as session:
             all_actions = list(
                 session.exec(
@@ -122,7 +123,7 @@ class AuditLog:
         total = len(all_actions)
         proposed = sum(1 for a in all_actions if a.proposed and not a.confirmed)
         confirmed = sum(1 for a in all_actions if a.confirmed)
-        by_risk = {}
+        by_risk: dict[str, int] = {}
         for a in all_actions:
             by_risk[a.risk_level] = by_risk.get(a.risk_level, 0) + 1
 
@@ -175,6 +176,7 @@ if __name__ == "__main__":
     ))
 
     # 3. Promote the BOLA finding to confirmed (VerificationEngine would do this)
+    assert bola_action.id is not None, "bola_action.id should not be None after record()"
     confirmed = log.mark_confirmed(bola_action.id)
     assert confirmed is not None and confirmed.confirmed is True, \
         "mark_confirmed() failed"

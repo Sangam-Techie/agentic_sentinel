@@ -6,9 +6,9 @@ from typing import Any
 @dataclass
 class Perception:
     target_url: str
-    api_map: dict
-    raw_findings: list
-    metadata: dict
+    api_map: dict[str, Any]
+    raw_findings: list[Any]
+    metadata: dict[str, Any]
 
 @dataclass
 class AgentDecision:
@@ -26,6 +26,6 @@ class ActionResult:
     target: str
     response_status: int | None
     response_body: Any
-    proposed_finding: dict | None
+    proposed_finding: dict[str, Any] | None
     raw_request: str = ""
     raw_response: str = ""

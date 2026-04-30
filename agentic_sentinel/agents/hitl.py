@@ -63,7 +63,7 @@ class PermissionNode:
                   approved=approved, reason="human decision")
         return approved
 
-    def _log(self, tool, target, risk_level, auth_ref, approved, reason):
+    def _log(self, tool: str, target: str, risk_level: str, auth_ref: str, approved: bool, reason: str) -> None:
         self.audit_log.record(AgentAction(
             run_id=self.run_id,
             tool=f"PermissionNode:{tool}",
