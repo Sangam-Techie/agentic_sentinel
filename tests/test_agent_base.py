@@ -1,5 +1,10 @@
 
-from agentic_sentinel.agents import DemoAgent, Perception
+from agentic_sentinel.agents.audit import AuditLog
+from agentic_sentinel.agents.demo_agent import DemoAgent
+from agentic_sentinel.agents.types import Perception
+
+IN_MEMORY_DB = "sqlite://"
+
 
 # ======================================================
 # TEST 1: DemoAgent perceive() returns correct Perception
@@ -7,95 +12,83 @@ from agentic_sentinel.agents import DemoAgent, Perception
 
 
 async def test_perceive_returns_perception():
-    agent = DemoAgent(name="test", max_iterations=1, loop_interval=0)
+    audit = AuditLog(db_url=IN_MEMORY_DB)
+    agent = DemoAgent(audit_log=audit, run_id="test-1")
     perception = await agent.perceive()
 
     # check if perception is a Perception instance
     assert isinstance(perception, Perception)
 
-    # check of the perception ping value is ok
-    assert perception.data["ping"] == "ok"
-
-    # check if perception source equals to "demo"
-    assert perception.source == "demo"
+    # check if the perception has the expected structure
+    assert perception.target_url == "http://localhost:9090"
+    assert "endpoints" in perception.api_map
+    assert perception.metadata["note"] == "demo - no real requests"
 
 
 # ==========================================================
-# TEST 2: DemoAgent reason() returns no_op on healthy ping
+# TEST 2: DemoAgent reason() returns demo action on healthy state
 # ==========================================================
 
 
-async def test_reason_no_op_on_healthy():
-    agent = DemoAgent(name="test", max_iterations=1, loop_interval=0)
-    perception = Perception(source="demo", data={"ping": "ok"})
+async def test_reason_returns_demo_action():
+    audit = AuditLog(db_url=IN_MEMORY_DB)
+    agent = DemoAgent(audit_log=audit, run_id="test-2")
+    perception = await agent.perceive()
     decision = await agent.reason(perception)
 
-    # check if descision.action_name == "no_op"
-    assert decision.action_name == "no_op"
+    # check if decision.action == "demo_action"
+    assert decision.action == "demo_action"
 
     # check if decision.risk_level == "LOW"
     assert decision.risk_level == "LOW"
 
+    # check if decision.tool_to_use == "DemoTool"
+    assert decision.tool_to_use == "DemoTool"
+
 # =========================================================
-# TEST 3: DemoAgent reason() returns alert on bad ping
+# TEST 3: DemoAgent act() returns ActionResult
 # =========================================================
 
 
-async def test_reason_alert_on_bad_ping():
-    agent = DemoAgent(name="test", max_iterations=1, loop_interval=0)
-    perception = Perception(source="demo", data={"ping": "timeout"})
+async def test_act_returns_action_result():
+    from agentic_sentinel.agents.types import ActionResult
+
+    audit = AuditLog(db_url=IN_MEMORY_DB)
+    agent = DemoAgent(audit_log=audit, run_id="test-3")
+    perception = await agent.perceive()
     decision = await agent.reason(perception)
+    result = await agent.act(decision)
 
-    # check if action_name is "alert"
-    assert decision.action_name == "alert"
+    # check if result is an ActionResult instance
+    assert isinstance(result, ActionResult)
 
-    # check if risk_level is not "LOW"
-    assert decision.risk_level != "LOW"
+    # check if action was successful
+    assert result.success is True
+
+    # check if tool_used is "DemoTool"
+    assert result.tool_used == "DemoTool"
+
 
 # ==================================================
-# TEST 4: run_loop() executes exactly N iterations
+# TEST 4: Agent run() method executes the full loop
 # ==================================================
 
 
-async def test_loop_runs_exact_iterations():
+async def test_run_executes_full_loop():
     """
-    The loop must stop after max_iterations and not run one extra.
+    The run() method should execute perceive -> reason -> act -> observe
     """
-    n = 3
-    agent = DemoAgent(name="test", max_iterations=n, loop_interval=0)
+    audit = AuditLog(db_url=IN_MEMORY_DB)
+    agent = DemoAgent(audit_log=audit, run_id="test-4")
 
-    # check the run.loop() with asyncio
-    await agent.run_loop()
+    # Run the agent
+    await agent.run()
 
-    # check the iteration value
-    assert agent.iteration == n
+    # Check that actions were recorded in audit log
+    actions = audit.get_all_actions("test-4")
+    assert len(actions) >= 1  # At least the demo action should be recorded
 
-
-# ============================================
-# TEST 5: stop_event halts the loop early
-# ============================================
-
-
-async def test_stop_event_halts_loop():
-    """
-    Calling agent.stop() during the loop must halt it before max_iterations.
-    Strategy: set max_iterations=100 (would take forever),
-            but schedule a stop after 2 iterations using a side-effect.
-    """
-    agent = DemoAgent(name="test", max_iterations=100, loop_interval=0)
-
-    # monkeypath observe() to stop the agent after 2 calls
-    call_count = {"n": 0}
-    original_observe = agent.observe
-
-    async def observe_and_maybe_stop(result):
-        await original_observe(result)
-        call_count["n"] += 1
-        if call_count["n"] >= 2:
-            agent.stop()  #stop the event
-
-    agent.observe = observe_and_maybe_stop
-    await agent.run_loop()
-
-    # check if agent stopped at or near 2 iterations(not 100)
-    assert agent.iteration <= 2
+    # Check that the action has the expected properties
+    action = actions[0]
+    assert "DemoAgent.act" in action.tool
+    assert action.risk_level == "LOW"

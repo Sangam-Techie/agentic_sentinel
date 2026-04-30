@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  fastapi_backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    environment:
+      - AGENT_KILL_SWITCH=false
+      - DATABASE_URL=sqlite:////data/agent_audit.sqlite
+      - LLM_BACKEND=local
+    volumes:
+      - sqlite_data:/data
+    tmpfs: [/tmp]
+    user: "1000:1000"
+
+  streamlit_dashboard:
+    build: ./dashboard
+    ports: ["8501:8501"]
+    depends_on: [fastapi_backend]
+
+  chromadb:
+    image: docker.io/chromadb/chroma:latest
+    ports: ["8100:8000"]
+    volumes: [chroma_data:/chroma/chroma]
+
+  vulnerable_api:
+    build: ./lab_targets/vulnerable_api
+    ports: ["9090:8000"]
+    profiles: [labs]
+
+  crapi:
+    image: docker.io/levoai/crapi-all:latest
+    ports: ["9091:8080"]
+    profiles: [labs]
+
+  juiceshop:
+    image: docker.io/bkimminich/juice-shop:latest
+    ports: ["9092:3000"]
+    profiles: [labs]
+
+volumes:
+  sqlite_data:
+  chroma_data:

@@ -1,41 +1,31 @@
-"""
-Shared data contracts for the agent loop.
-Import with: from agentic_sentinel.agents.types import Perception, AgentDecision, ActionResult
-"""
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+
+from dataclasses import dataclass
 from typing import Any
 
 
 @dataclass
 class Perception:
-    """
-    The raw observations from one perceive() call.
-    Think: everything the agent's 'senses' returned this iteration.
-    """
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
-    data: dict[str, Any] = field(default_factory=dict)
-    source: str = "unknown" #e.g. "network_scan", "camera_feed", "log_file"
-
+    target_url: str
+    api_map: dict
+    raw_findings: list
+    metadata: dict
 
 @dataclass
 class AgentDecision:
-    """
-    The output of reason(): what action should be taken and at what risk level.
-    """
-    action_name: str  # e.g. "port_scan", "alert", "no_op"
-    parameters: dict[str, Any] = field(default_factory=dict)
-    risk_level: str = "LOW"  # LOW | MEDIUM | HIGH | CRITICAL
-    rationale: str = ""      # Human-readable explanation of why
-
+    action: str
+    target_endpoint: str
+    tool_to_use: str
+    risk_level: str
+    reasoning: str
+    confidence: float
 
 @dataclass
 class ActionResult:
-    """
-    The output of act(): what actually happened.
-    """
     success: bool
-    action_name: str
-    output: dict[str, Any] = field(default_factory=dict)
-    error: str = ""
-    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
+    tool_used: str
+    target: str
+    response_status: int | None
+    response_body: Any
+    proposed_finding: dict | None
+    raw_request: str = ""
+    raw_response: str = ""

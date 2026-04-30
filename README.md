@@ -88,8 +88,8 @@ python -m agentic_sentinel.environment_check
 # Run the test suite
 pytest --asyncio-mode=auto -v
 
-# Run the demo agent (3 iterations, audit trail written to demo_audit.sqlite)
-python -m agentic_sentinel.agents.base
+# Run the demo agent (audit trail written to demo_audit.sqlite)
+python -m agentic_sentinel.agents.demo_agent
 ```
 **Lab targets** (containerized — no real systems required):
 

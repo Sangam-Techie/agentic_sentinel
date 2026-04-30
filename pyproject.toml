@@ -16,22 +16,11 @@ dependencies = [
     "typer",
     "fastapi",
     "uvicorn",
-    "scapy",
-    "onvif-zeep",
     "sqlmodel",
     "chromadb",
-    "opencv-python-headless",
     "httpx",
     "langchain",
     "langgraph",
-    "aiomqtt",
-    "aiocoap",
-    "pymodbus",
-    "asyncua",
-    "BAC0",
-    "bleak",
-    "pysnmp",
-    "paramiko",
 ]
 
 [project.optional-dependencies]

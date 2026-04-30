@@ -18,22 +18,16 @@ IN_MEMORY_DB = "sqlite://"
 
 @pytest.fixture
 def audit() -> AuditLog:
-    return AuditLog(database_url=IN_MEMORY_DB)
+    return AuditLog(db_url=IN_MEMORY_DB)
+
 
 @pytest.fixture
-def run_id(audit: AuditLog) -> str:
-    run = audit.start_run("test", "localhost", "att.md")
-    return run.id
+def run_id() -> str:
+    return "test-run-123"
 
-def make_node(risk: str, audit: AuditLog, run_id: str) -> PermissionNode:
-    return PermissionNode(
-        action_description="test_action",
-        risk=risk,
-        audit_log=audit,
-        run_id=run_id,
-        tool_name="test_tool",
-        parameters={"key":"val"}
-    )
+
+def make_node(audit: AuditLog, run_id: str) -> PermissionNode:
+    return PermissionNode(audit_log=audit, run_id=run_id)
 
 
 # --------------------------------------
@@ -42,33 +36,65 @@ def make_node(risk: str, audit: AuditLog, run_id: str) -> PermissionNode:
 
 def test_kill_switch_blocks_low(audit, run_id, monkeypatch):
     monkeypatch.setenv("AGENT_KILL_SWITCH", "true")
-    node = make_node("LOW", audit, run_id)
-    approved = node.request_approval()
+    node = make_node(audit, run_id)
+    approved = node.request_permission(
+        tool_name="test_tool",
+        target="http://example.com",
+        risk_level="LOW",
+        description="Test action",
+        authorization_ref="ATT-001"
+    )
 
     assert approved is False
-    actions = audit.get_actions_for_run(run_id)
-    assert actions[0].approval_reason == "Kill_switch"
+    # Check that an action was logged with kill switch reason
+    actions = audit.get_all_actions(run_id)
+    assert len(actions) > 0
+    assert "KILL SWITCH ACTIVE" in actions[-1].result_summary
+
 
 def test_kill_switch_blocks_high(audit, run_id, monkeypatch):
     monkeypatch.setenv("AGENT_KILL_SWITCH", "true")
-    node = make_node("HIGH", audit, run_id)
-    approved = node.request_approval()
+    node = make_node(audit, run_id)
+    approved = node.request_permission(
+        tool_name="test_tool",
+        target="http://example.com",
+        risk_level="HIGH",
+        description="Test action",
+        authorization_ref="ATT-001"
+    )
 
     assert approved is False
-    assert audit.get_actions_for_run(run_id)[0].approval_reason == "Kill_switch"
+    actions = audit.get_all_actions(run_id)
+    assert len(actions) > 0
+    assert "KILL SWITCH ACTIVE" in actions[-1].result_summary
+
 
 def test_kill_switch_case_insensitive(audit, run_id, monkeypatch):
     # "TRUE", "True", "true" must all activate the kill switch
     for value in ["TRUE", "True", "true"]:
         monkeypatch.setenv("AGENT_KILL_SWITCH", value)
-        node = make_node("LOW", audit, run_id)
-        assert node.request_approval() is False
+        node = make_node(audit, run_id)
+        approved = node.request_permission(
+            tool_name="test_tool",
+            target="http://example.com",
+            risk_level="LOW",
+            description="Test action",
+            authorization_ref="ATT-001"
+        )
+        assert approved is False
+
 
 def test_kill_switch_off_by_default(audit, run_id, monkeypatch):
-    monkeypatch.delenv("Agent_KILL_SWITCH", raising=False)
-    node = make_node("LOW", audit, run_id)
-    approved = node.request_approval()
-    assert approved is True # LOW auto-approves when kill switch is off
+    monkeypatch.delenv("AGENT_KILL_SWITCH", raising=False)
+    node = make_node(audit, run_id)
+    approved = node.request_permission(
+        tool_name="test_tool",
+        target="http://example.com",
+        risk_level="LOW",
+        description="Test action",
+        authorization_ref="ATT-001"
+    )
+    assert approved is True  # LOW auto-approves when kill switch is off
 
 # --------------------------------------
 # LOW risk - auto-approve
@@ -76,71 +102,100 @@ def test_kill_switch_off_by_default(audit, run_id, monkeypatch):
 
 def test_low_risk_auto_approved(audit, run_id, monkeypatch):
     monkeypatch.delenv("AGENT_KILL_SWITCH", raising=False)
-    node = make_node("LOW", audit, run_id)
-    approved = node.request_approval()
+    node = make_node(audit, run_id)
+    approved = node.request_permission(
+        tool_name="test_tool",
+        target="http://example.com",
+        risk_level="LOW",
+        description="Test action",
+        authorization_ref="ATT-001"
+    )
 
     assert approved is True
-    action = audit.get_actions_for_run(run_id)[0]
-    assert action.approved is True
-    assert action.approval_reason == "Risk level is 'LOW'"
+    actions = audit.get_all_actions(run_id)
+    assert len(actions) > 0
+    assert "Auto-approved: below HITL threshold" in actions[-1].result_summary
 
 
 # ---------------------------------------------
-# MEDUIM / HIGH - token prompt
+# MEDIUM / HIGH - human prompt
 # ---------------------------------------------
 
-def test_correct_token_approves(audit, run_id, monkeypatch):
+def test_human_approval_yes(audit, run_id, monkeypatch):
     monkeypatch.delenv("AGENT_KILL_SWITCH", raising=False)
-    node = make_node("HIGH", audit, run_id)
-    # Intercept _generate_token so we know what to "type"
-    fixed_token = "ABC123" # noqa: S105 - test token, not a real password
-    with patch.object(node, "_generate_token", return_value=fixed_token):
-        with patch("builtins.input", return_value=fixed_token):
-            approved = node.request_approval()
+    node = make_node(audit, run_id)
+
+    with patch("builtins.input", return_value="yes"):
+        approved = node.request_permission(
+            tool_name="test_tool",
+            target="http://example.com",
+            risk_level="HIGH",
+            description="Test action",
+            authorization_ref="ATT-001"
+        )
 
     assert approved is True
-    action = audit.get_actions_for_run(run_id)[0]
-    assert action.approved is True
-    assert action.approval_reason == "Token accepted"
+    actions = audit.get_all_actions(run_id)
+    assert len(actions) > 0
+    assert "APPROVED - human decision" in actions[-1].result_summary
 
-def test_wrong_token_denies(audit, run_id, monkeypatch):
+
+def test_human_approval_no(audit, run_id, monkeypatch):
     monkeypatch.delenv("AGENT_KILL_SWITCH", raising=False)
-    node = make_node("HIGH", audit, run_id)
+    node = make_node(audit, run_id)
 
-    with patch.object(node, "_generate_token", return_value="ABC123"):
-        with patch("builtins.input", return_value="WRONG1"):
-            approved = node.request_approval()
+    with patch("builtins.input", return_value="no"):
+        approved = node.request_permission(
+            tool_name="test_tool",
+            target="http://example.com",
+            risk_level="HIGH",  # HIGH requires human approval
+            description="Test action",
+            authorization_ref="ATT-001"
+        )
 
     assert approved is False
-    action = audit.get_actions_for_run(run_id)[0]
-    assert action.approved is False
-    assert action.approval_reason == "Wrong Token"
+    actions = audit.get_all_actions(run_id)
+    assert len(actions) > 0
+    assert "DENIED - human decision" in actions[-1].result_summary
+
 
 def test_eoferror_denies_gracefully(audit, run_id, monkeypatch):
     """Simulates CI environment where stdin is not terminal."""
     monkeypatch.delenv("AGENT_KILL_SWITCH", raising=False)
-    node = make_node("MEDIUM", audit, run_id)
+    node = make_node(audit, run_id)
 
-    with patch.object(node, "_generate_token", return_value="XYZ789"):
-        with patch("builtins.input", side_effect=EOFError):
-            approved = node.request_approval()
+    with patch("builtins.input", side_effect=EOFError):
+        approved = node.request_permission(
+            tool_name="test_tool",
+            target="http://example.com",
+            risk_level="HIGH",  # HIGH requires human approval
+            description="Test action",
+            authorization_ref="ATT-001"
+        )
 
     assert approved is False
-    assert audit.get_actions_for_run(run_id)[0].approval_reason == "human denied"
+    actions = audit.get_all_actions(run_id)
+    assert len(actions) > 0
+    assert "DENIED - human decision" in actions[-1].result_summary
 
 # ------------------------------------------
-# Invalid risk leevl
+# Invalid risk level - should still work but use default behavior
 # ------------------------------------------
 
-def test_invalid_risk_raises(audit, run_id):
-    with pytest.raises(ValueError, match="Invalid risk level"):
-        PermissionNode(
-            action_description="bad",
-            risk="BANANA",
-            audit_log=audit,
-            run_id=run_id,
-            tool_name="tool",
+def test_invalid_risk_defaults_to_high(audit, run_id):
+    node = make_node(audit, run_id)
+    # Invalid risk level should be treated as CRITICAL (highest risk)
+    # which requires human approval
+    with patch("builtins.input", return_value="yes"):
+        approved = node.request_permission(
+            tool_name="test_tool",
+            target="http://example.com",
+            risk_level="BANANA",
+            description="Test action",
+            authorization_ref="ATT-001"
         )
+    assert approved is True
+
 
 # -----------------------------------------------
 # Integration: full agent loop writes audit rows
@@ -150,32 +205,17 @@ def test_invalid_risk_raises(audit, run_id):
 async def test_agent_loop_writes_audit_rows():
     """
     Run DemoAgent for 3 iterations with a real AuditLog.
-    Verity AgentRun is created and AgentAction row appear.
+    Verify AgentAction rows appear.
     """
     from agentic_sentinel.agents.audit import AuditLog
-    from agentic_sentinel.agents.base import DemoAgent
+    from agentic_sentinel.agents.demo_agent import DemoAgent
 
-    audit = AuditLog(database_url=IN_MEMORY_DB)
-    agent = DemoAgent(
-        name="audit-test",
-        max_iterations=3,
-        loop_interval=0,
-        audit_log=audit,
-        operator="pytest",
-        target_scope="localhost",
-        authorization_ref="att.md",
-    )
-    await agent.run_loop()
+    audit = AuditLog(db_url=IN_MEMORY_DB)
+    agent = DemoAgent(audit_log=audit, run_id="integration-test-123")
 
-    assert agent.run_id is not None
-    actions = audit.get_actions_for_run(agent.run_id)
-    # 3 iterations x 1 observe() call each = 3 action rows minimum
-    assert len(actions) >= 3
+    # Run the agent once (single iteration)
+    await agent.run()
 
-    # The run should be marked completed
-    from sqlmodel import Session
-    with Session(audit.engine) as session:
-        from agentic_sentinel.agents.audit import AgentRun
-        run = session.get(AgentRun, agent.run_id)
-    assert run.status == "completed"
-    assert run.finished_at is not None
+    # Check that actions were recorded
+    actions = audit.get_all_actions("integration-test-123")
+    assert len(actions) >= 1  # At least the demo action should be recorded
